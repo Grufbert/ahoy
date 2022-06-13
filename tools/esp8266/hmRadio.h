@@ -49,7 +49,7 @@ template <uint8_t CE_PIN, uint8_t CS_PIN, uint8_t IRQ_PIN, class BUFFER, uint64_
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
-            DPRINTLN(F("hmRadio.h : HmRadio():mNrf24(CE_PIN: ") + String(CE_PIN) + F(", CS_PIN: ") + String(CS_PIN) + F(", SPI_SPEED: ") + String(SPI_SPEED) + ")");
+            DPRINTLN(String(F("hmRadio.h : HmRadio():mNrf24(CE_PIN: ")) + String(CE_PIN) + String(F(", CS_PIN: ")) + String(CS_PIN) + String(F(", SPI_SPEED: ")) + String(SPI_SPEED) + ")");
             mTxChLst[0] = 40;
             //mTxChIdx = 1;
 
@@ -95,7 +95,7 @@ class HmRadio {
             // enable only receiving interrupts
             mNrf24.maskIRQ(true, true, false);
 
-            DPRINTLN(F("RF24 Amp Pwr: RF24_PA_") + String(rf24AmpPower[AmplifierPower]));
+            DPRINTLN(String(F("RF24 Amp Pwr: RF24_PA_") ) + String(rf24AmpPower[AmplifierPower]));
             mNrf24.setPALevel(AmplifierPower & 0x03);
             mNrf24.startListening();
 

@@ -72,7 +72,7 @@ void app::setup(uint32_t timeout) {
             if(0ULL != invSerial) {
                 iv = mSys->addInverter(name, invSerial, modPwr);
                 if(NULL != iv) {
-                    DPRINTLN(F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX));
+                    DPRINTLN(String(F("add inverter: ")) + String(name) + ", SN: " + String((int)invSerial, HEX));
 
                     for(uint8_t j = 0; j < 4; j++) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, name, MAX_NAME_LENGTH);
@@ -197,7 +197,7 @@ void app::loop(void) {
     yield();
 
     if(checkTicker(&mRxTicker, 5)) {
-        //DPRINTLN(F("app_loops =") + String(app_loops));
+        //DPRINTLN(String(F("app_loops =") ) + String(app_loops));
         //app_loops=0;
         //DPRINT(F("a"));
         bool rxRdy = mSys->Radio.switchRxCh();
@@ -297,11 +297,11 @@ void app::loop(void) {
 
             if(0 != mTimestamp) {
                 if(mSerialDebug)
-                    DPRINTLN(F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
+                    DPRINTLN(String(F("Free heap: 0x") ) + String(ESP.getFreeHeap(), HEX));
 
                 if(!mSys->BufCtrl.empty()) {
                     if(mSerialDebug)
-                        DPRINTLN(F("recbuf not empty! #") + String(mSys->BufCtrl.getFill()));
+                        DPRINTLN(String(F("recbuf not empty! #") ) + String(mSys->BufCtrl.getFill()));
                 }
 
                 int8_t maxLoop = MAX_NUM_INVERTERS;
@@ -320,8 +320,8 @@ void app::loop(void) {
                     if(!mPayload[iv->id].complete) {
                         mRxFailed++;
                         if(mSerialDebug) {
-                            DPRINT(F("Inverter #") + String(iv->id) + " ");
-                            DPRINTLN(F("no Payload received! (retransmits: ") + String(mPayload[iv->id].retransmits) + ")");
+                            DPRINT(String(F("Inverter #")) + String(iv->id) + " ");
+                            DPRINTLN(String(F("no Payload received! (retransmits: ")) + String(mPayload[iv->id].retransmits) + ")");
                         }
                     }
 
@@ -335,7 +335,7 @@ void app::loop(void) {
 
                     yield();
                     if(mSerialDebug)
-                        DPRINTLN(F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
+                        DPRINTLN(String(F("Requesting Inverter SN ")) + String((int)iv->serial.u64, HEX));
                     mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                     mRxTicker = 0;
                 }
@@ -397,7 +397,7 @@ void app::processPayload(bool retransmit) {
                                     for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i ++) {
                                         if(mPayload[iv->id].len[i] == 0) {
                                             if(mSerialDebug)
-                                                DPRINTLN(F("Error while retrieving data: Frame ") + String(i+1) + F(" missing: Request Retransmit"));
+                                                DPRINTLN(String(F("Error while retrieving data: Frame ")) + String(i+1) + String(F(" missing: Request Retransmit")));
                                             mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x15, (0x81+i), true);
                                             break; // only retransmit one frame per loop
                                         }
@@ -429,7 +429,7 @@ void app::processPayload(bool retransmit) {
                     }
                     offs-=2;
                     if(mSerialDebug) {
-                        DPRINT(F("Payload (") + String(offs) + "): ");
+                        DPRINT(String(F("Payload (")) + String(offs) + "): ");
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
                     mRxSuccess++;
@@ -486,33 +486,33 @@ void app::showSetup(void) {
         mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
         mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), name, MAX_NAME_LENGTH);
         mEep->read(ADDR_INV_CH_PWR + (i * 2 * 4), modPwr, 4);
-        inv += F("<p class=\"subdes\">Inverter ") + String(i) + "</p>";
+        inv += String(F("<p class=\"subdes\">Inverter ")) + String(i) + "</p>";
 
-        inv += F("<label for=\"inv") + String(i) + F("Addr\">Address</label>");
-        inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Addr\" value=\"");
+        inv += String(F("<label for=\"inv")) + String(i) + String(F("Addr\">Address</label>"));
+        inv += String(F("<input type=\"text\" class=\"text\" name=\"inv")) + String(i) + String(F("Addr\" value=\""));
         if(0ULL != invSerial)
-            inv += String(invSerial, HEX);
+            inv += String((int)invSerial, HEX);
         inv += F("\"/ maxlength=\"12\" onkeyup=\"checkSerial()\">");
 
-        inv += F("<label for=\"inv") + String(i) + F("Name\">Name</label>");
-        inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Name\" value=\"");
+        inv += String(F("<label for=\"inv")) + String(i) + String(F("Name\">Name</label>"));
+        inv += String(F("<input type=\"text\" class=\"text\" name=\"inv")) + String(i)  + String(F("Name\" value=\""));
         inv += String(name);
-        inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
+        inv += String(F("\"/ maxlength=\"")) + String(MAX_NAME_LENGTH) + String(F("\">"));
 
-        inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
+        inv += String(F("<label for=\"inv")) + String(i) + String(F("ModPwr0\" name=\"lbl")) + String(i);
         inv += F("ModPwr\">Max Module Power (Wp)</label>");
         for(uint8_t j = 0; j < 4; j++) {
-            inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModPwr") + String(j) + F("\" value=\"");
+            inv += String(F("<input type=\"text\" class=\"text sh\" name=\"inv")) + String(i) + String(F("ModPwr")) + String(j) + String(F("\" value=\""));
             inv += String(modPwr[j]);
             inv += F("\"/ maxlength=\"4\">");
         }
-        inv += F("<br/><label for=\"inv") + String(i) + F("ModName0\" name=\"lbl") + String(i);
+        inv += String(F("<br/><label for=\"inv")) + String(i) + String(F("ModName0\" name=\"lbl")) + String(i);
         inv += F("ModName\">Module Name</label>");
         for(uint8_t j = 0; j < 4; j++) {
             mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, name, MAX_NAME_LENGTH);
-            inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModName") + String(j) + F("\" value=\"");
+            inv += String(F("<input type=\"text\" class=\"text sh\" name=\"inv")) + String(i) + String(F("ModName")) + String(j) + String(F("\" value=\""));
             inv += String(name);
-            inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
+            inv += String(F("\"/ maxlength=\"")) + String(MAX_NAME_LENGTH) + String(F("\">"));
         }
     }
     html.replace(F("{INVERTERS}"), String(inv));
@@ -521,16 +521,16 @@ void app::showSetup(void) {
     // pinout
     String pinout;
     for(uint8_t i = 0; i < 3; i++) {
-        pinout += F("<label for=\"") + String(pinArgNames[i]) + "\">" + String(pinNames[i]) + F("</label>");
-        pinout += F("<select name=\"") + String(pinArgNames[i]) + "\">";
+        pinout += String(F("<label for=\"")) + String(pinArgNames[i]) + "\">" + String(pinNames[i]) + String(F("</label>"));
+        pinout += String(F("<select name=\"")) + String(pinArgNames[i])  + "\">";
         for(uint8_t j = 0; j <= 16; j++) {
-            pinout += F("<option value=\"") + String(j) + "\"";
+            pinout += String(F("<option value=\"")) + String(j) + "\"";
             switch(i) {
                 default: if(j == mSys->Radio.pinCs)  pinout += F(" selected"); break;
                 case 1:  if(j == mSys->Radio.pinCe)  pinout += F(" selected"); break;
                 case 2:  if(j == mSys->Radio.pinIrq) pinout += F(" selected"); break;
             }
-            pinout += ">" + String(wemosPins[j]) + F("</option>");
+            pinout += ">" + String(wemosPins[j]) + String(F("</option>"));
         }
         pinout += F("</select>");
     }
@@ -540,10 +540,10 @@ void app::showSetup(void) {
     // nrf24l01+
     String rf24;
     for(uint8_t i = 0; i <= 3; i++) {
-        rf24 += F("<option value=\"") + String(i) + "\"";
+        rf24 += String(F("<option value=\"")) + String(i) + "\"";
         if(i == mSys->Radio.AmplifierPower)
             rf24 += F(" selected");
-        rf24 += ">" + String(rf24AmpPower[i]) + F("</option>");
+        rf24 += ">" + String(rf24AmpPower[i]) + String(F("</option>"));
     }
     html.replace(F("{RF24}"), String(rf24));
 
@@ -596,18 +596,17 @@ void app::showErase() {
 //-----------------------------------------------------------------------------
 void app::showStatistics(void) {
     //DPRINTLN(F("app::showStatistics"));
-    String content = F("Receive success: ") + String(mRxSuccess) + "\n";
-    content += F("Receive fail: ") + String(mRxFailed) + "\n";
-    content += F("Send Cnt: ") + String(mSys->Radio.mSendCnt) + String("\n\n");
-
-    content += F("Free Heap: 0x") + String(ESP.getFreeHeap(), HEX) + "\n\n";
+    String content = String(F("Receive success: ")) + String(mRxSuccess) + "\n";
+    content += String(F("Receive fail: ")) + String(mRxFailed) + "\n";
+    content += String(F("Send Cnt: ")) + String(mSys->Radio.mSendCnt) + String("\n\n");
+    content += String(F("Free Heap: 0x")) + String(ESP.getFreeHeap(), HEX) + "\n\n";
 
     Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         iv = mSys->getInverterByPos(i);
         if(NULL != iv) {
             bool avail = true;
-            content += F("Inverter '") + String(iv->name) + F("' is ");
+            content += String(F("Inverter '")) + String(iv->name) + String(F("' is "));
             if(!iv->isAvailable(mTimestamp)) {
                 content += F("not ");
                 avail = false;
@@ -619,7 +618,7 @@ void app::showStatistics(void) {
 
             if(!avail) {
                 if(iv->getLastTs() > 0)
-                    content += F("-> last successful transmission: ") + getDateTimeStr(iv->getLastTs()) + "\n";
+                    content += String(F("-> last successful transmission: ")) + getDateTimeStr(iv->getLastTs()) + "\n";
             }
         }
     }
@@ -670,17 +669,16 @@ void app::showLiveData(void) {
                 case INV_TYPE_4CH: modNum = 4; break;
             }
 
-            modHtml += F("<div class=\"iv\">"
-                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F("</span>");
+            modHtml += String(F("<div class=\"iv\"><div class=\"ch-iv\"><span class=\"head\">")) + String(iv->name) + String(F("</span>"));
             uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF};
 
             for(uint8_t fld = 0; fld < 10; fld++) {
                 pos = (iv->getPosByChFld(CH0, list[fld]));
                 if(0xff != pos) {
                     modHtml += F("<div class=\"subgrp\">");
-                    modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
-                    modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
-                    modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
+                    modHtml += String(F("<span class=\"value\">")) + String(iv->getValue(pos));
+                    modHtml += String(F("<span class=\"unit\">")) + String(iv->getUnit(pos)) + String(F("</span></span>"));
+                    modHtml += String(F("<span class=\"info\">")) + String(iv->getFieldName(pos)) + String(F("</span>"));
                     modHtml += F("</div>");
                 }
             }
@@ -689,7 +687,7 @@ void app::showLiveData(void) {
             for(uint8_t ch = 1; ch <= modNum; ch ++) {
                 modHtml += F("<div class=\"ch\"><span class=\"head\">");
                 if(iv->chName[ch-1][0] == 0)
-                    modHtml += F("CHANNEL ") + String(ch);
+                    modHtml += String(F("CHANNEL ") ) + String(ch);
                 else
                     modHtml += String(iv->chName[ch-1]);
                 modHtml += F("</span>");
@@ -703,15 +701,15 @@ void app::showLiveData(void) {
                         case 5:  pos = (iv->getPosByChFld(ch, FLD_IRR));  break;
                     }
                     if(0xff != pos) {
-                        modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
-                        modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
-                        modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
+                        modHtml += String(F("<span class=\"value\">") ) + String(iv->getValue(pos));
+                        modHtml += String(F("<span class=\"unit\">")) + String(iv->getUnit(pos)) + String(F("</span></span>"));
+                        modHtml += String(F("<span class=\"info\">")) + String(iv->getFieldName(pos)) + String(F("</span>"));
                     }
                 }
                 modHtml += "</div>";
                 yield();
             }
-            modHtml += F("<div class=\"ts\">Last received data requested at: ") + getDateTimeStr(iv->ts) + F("</div>");
+            modHtml += String(F("<div class=\"ts\">Last received data requested at: ")) + getDateTimeStr(iv->ts) + String(F("</div>"));
             modHtml += F("</div>");
 #else
             // dump all data to web frontend

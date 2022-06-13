@@ -22,8 +22,11 @@
 #define CircularBuffer_h
 
 #ifdef ESP8266
-#define DISABLE_IRQ noInterrupts()
-#define RESTORE_IRQ interrupts()
+  #define DISABLE_IRQ noInterrupts()
+  #define RESTORE_IRQ interrupts()
+#elif ESP32
+  #define DISABLE_IRQ noInterrupts()
+  #define RESTORE_IRQ interrupts()
 #else
 #define DISABLE_IRQ       \
     uint8_t sreg = SREG;    \

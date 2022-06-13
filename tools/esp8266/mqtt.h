@@ -1,7 +1,6 @@
 #ifndef __MQTT_H__
 #define __MQTT_H__
 
-#include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include "defines.h"
 

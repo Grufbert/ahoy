@@ -1,5 +1,5 @@
 #include "main.h"
-#include "version.h"
+//#include "version.h"
 
 #include "html/h/style_css.h"
 #include "html/h/setup_html.h"
@@ -8,8 +8,14 @@
 //-----------------------------------------------------------------------------
 Main::Main(void) {
     mDns     = new DNSServer();
-    mWeb     = new ESP8266WebServer(80);
-    mUpdater = new ESP8266HTTPUpdateServer();
+    #if defined(ESP8266)
+      mWeb     = new ESP8266WebServer(80);
+      mUpdater = new ESP8266HTTPUpdateServer();
+    #elif defined(ESP32)
+      mWeb     = new WebServer(80);
+      mUpdater = new HTTPUpdateServer();
+    #endif
+    
     mUdp     = new WiFiUDP();
 
     mApActive          = true;
@@ -86,11 +92,11 @@ void Main::loop(void) {
             if(millis() - mApLastTick > 10000) {
                 uint8_t cnt = WiFi.softAPgetStationNum();
                 if(cnt > 0) {
-                    DPRINTLN(String(cnt) + F(" clients connected, resetting AP timeout"));
+                    DPRINTLN(String(cnt) + String(F(" clients connected, resetting AP timeout")));
                     mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
                 }
                 mApLastTick = millis();
-                DPRINTLN(F("AP will be closed in ") + String((mNextTryTs - mApLastTick) / 1000) + F(" seconds"));
+                DPRINTLN(String(F("AP will be closed in ")) + String((mNextTryTs - mApLastTick) / 1000) + String(F(" seconds")));
             }
         }
 #endif
@@ -144,11 +150,11 @@ void Main::setupAp(const char *ssid, const char *pwd) {
     DPRINTLN(F("Main::setupAp"));
     IPAddress apIp(192, 168, 1, 1);
 
-    DPRINTLN(F("\n---------\nAP MODE\nSSDI: ")
-        + String(ssid) + F("\nPWD: ")
-        + String(pwd) + F("\nActive for: ")
-        + String(WIFI_AP_ACTIVE_TIME) + F(" seconds")
-        + F("\n---------\n"));
+    DPRINTLN(String(F("\n---------\nAP MODE\nSSDI: "))
+        + String(ssid) + String(F("\nPWD: "))
+        + String(pwd) + String(F("\nActive for: "))
+        + String(WIFI_AP_ACTIVE_TIME) + String(F(" seconds"))
+        + String(F("\n---------\n")));
     DPRINTLN("DBG: " + String(mNextTryTs));
 
     WiFi.mode(WIFI_AP);
@@ -185,7 +191,7 @@ bool Main::setupStation(uint32_t timeout) {
         WiFi.hostname(mDeviceName);
 
     delay(2000);
-    DPRINTLN(F("connect to network '") + String(mStationSsid) + F("' ..."));
+    DPRINTLN(String(F("connect to network '")) + String(mStationSsid) + String(F("' ...")));
     while (WiFi.status() != WL_CONNECTED) {
         delay(100);
         if(cnt % 100 == 0)
@@ -228,7 +234,7 @@ void Main::showSetup(void) {
     if(mApActive)
         html.replace("{IP}", String(F("http://192.168.1.1")));
     else
-        html.replace("{IP}", (F("http://") + String(WiFi.localIP().toString())));
+        html.replace("{IP}", (String(F("http://") ) + String(WiFi.localIP().toString())));
 
     mWeb->send(200, F("text/html"), html);
 }
@@ -318,7 +324,7 @@ void Main::showTime(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showNotFound(void) {
-    DPRINTLN(F("Main::showNotFound - ") + mWeb->uri());
+    DPRINTLN(String(F("Main::showNotFound - ") ) + mWeb->uri());
     String msg = F("File Not Found\n\nURI: ");
     msg += mWeb->uri();
     msg += F("\nMethod: ");
@@ -366,7 +372,7 @@ void Main::showFactoryRst(void) {
             "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>");
         refresh = 120;
     }
-    mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
+    mWeb->send(200, String(F("text/html")), String(F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"")) + String(refresh) + String(F("; URL=/\"></head><body>") ) + content + String(F("</body></html>")));
     if(refresh == 10) {
         delay(1000);
         ESP.restart();

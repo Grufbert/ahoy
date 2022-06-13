@@ -1,13 +1,11 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-#include "Arduino.h"
+//#include "Arduino.h"
+#include <WebServer.h>
+#include <HTTPUpdateServer.h>
 
-#include <ESP8266WiFi.h>
 #include <DNSServer.h>
-#include <ESP8266WebServer.h>
-
-#include <ESP8266HTTPUpdateServer.h>
 
 // NTP
 #include <WiFiUdp.h>
@@ -74,7 +72,7 @@ class Main {
                 end = addr + 64;
                 if(end > (ADDR_SETTINGS_CRC + 2))
                     end = (ADDR_SETTINGS_CRC + 2);
-                DPRINTLN(F("erase: 0x") + String(addr, HEX) + " - 0x" + String(end, HEX));
+                DPRINTLN(String(F("erase: 0x")) + String(addr, HEX) + " - 0x" + String(end, HEX));
                 mEep->write(addr, buf, (end-addr));
                 addr = end;
             } while(addr < (ADDR_SETTINGS_CRC + 2));
@@ -101,7 +99,7 @@ class Main {
             uint32_t free;
             uint16_t max;
             uint8_t frag;
-            ESP.getHeapStats(&free, &max, &frag);
+            //ESP.getHeapStats(&free, &max, &frag); // TODO for esp32
 
             Serial.printf("free: 0x%x - max: 0x%x - frag: %d%%\n", free, max, frag);
         }
@@ -111,7 +109,15 @@ class Main {
         bool mWifiSettingsValid;
         bool mSettingsValid;
         bool mApActive;
-        ESP8266WebServer *mWeb;
+
+        #if defined(ESP8266)
+          ESP8266WebServer *mWeb;
+        #elif defined(ESP32)
+          WebServer *mWeb;
+        #else
+          #error "This ain't a ESP8266 or ESP32, dumbo!"
+        #endif      
+          
         char mVersion[9];
         char mDeviceName[DEVNAME_LEN];
         eep *mEep;
@@ -143,7 +149,14 @@ class Main {
         uint8_t mHeapStatCnt;
 
         DNSServer *mDns;
-        ESP8266HTTPUpdateServer *mUpdater;
+
+        #if defined(ESP8266)
+          ESP8266HTTPUpdateServer *mUpdater;
+        #elif defined(ESP32)
+          HTTPUpdateServer *mUpdater;
+        #else
+          #error "This ain't a ESP8266 or ESP32, dumbo!"
+        #endif
 
         WiFiUDP *mUdp; // for time server
 };

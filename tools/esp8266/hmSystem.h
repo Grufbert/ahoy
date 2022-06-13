@@ -45,7 +45,7 @@ class HmSystem {
                     case 0x21: p->type = INV_TYPE_1CH; break;
                     case 0x41: p->type = INV_TYPE_2CH; break;
                     case 0x61: p->type = INV_TYPE_4CH; break;
-                    default: DPRINTLN(F("unknown inverter type: 11") + String(p->serial.b[4], HEX)); break;
+                    default: DPRINTLN(String(F("unknown inverter type: 11") ) + String(p->serial.b[4], HEX)); break;
                 }
             }
             else
