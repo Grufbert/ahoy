@@ -293,7 +293,7 @@ void Main::updateCrc(void) {
     DPRINTLN(F("Main::updateCrc"));
     uint16_t crc;
     crc = buildEEpCrc(ADDR_START, ADDR_WIFI_CRC);
-    //Serial.println("new CRC: " + String(crc, HEX));
+    Serial.println("new CRC: " + String(crc, HEX));
     mEep->write(ADDR_WIFI_CRC, crc);
     mEep->commit();
 }

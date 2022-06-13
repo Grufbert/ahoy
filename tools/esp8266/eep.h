@@ -1,7 +1,7 @@
 #ifndef __EEP_H__
 #define __EEP_H__
 
-#include "Arduino.h"
+//#include "Arduino.h"
 #include <EEPROM.h>
 
 class eep {
