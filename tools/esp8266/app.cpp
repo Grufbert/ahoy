@@ -491,7 +491,11 @@ void app::showSetup(void) {
         inv += String(F("<label for=\"inv")) + String(i) + String(F("Addr\">Address</label>"));
         inv += String(F("<input type=\"text\" class=\"text\" name=\"inv")) + String(i) + String(F("Addr\" value=\""));
         if(0ULL != invSerial)
-            inv += String((int)invSerial, HEX);
+        {
+            unsigned long long1 = (unsigned long)((invSerial & 0xFFFF0000) >> 16 );
+            unsigned long long2 = (unsigned long)((invSerial & 0x0000FFFF));
+            inv += String(long1, HEX) + String(long2, HEX);
+        }
         inv += F("\"/ maxlength=\"12\" onkeyup=\"checkSerial()\">");
 
         inv += String(F("<label for=\"inv")) + String(i) + String(F("Name\">Name</label>"));
