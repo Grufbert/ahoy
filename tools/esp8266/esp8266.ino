@@ -18,6 +18,8 @@
 #include "config.h"
 #include "EEPROM.h"
 
+#include <esp_task_wdt.h>
+
 app myApp;
 
 //-----------------------------------------------------------------------------
@@ -33,12 +35,15 @@ void setup() {
 
     // TODO: move to HmRadio
     attachInterrupt(digitalPinToInterrupt(myApp.getIrqPin()), handleIntr, FALLING);
+
+    esp_task_wdt_init(10, false);
 }
 
 
 //-----------------------------------------------------------------------------
 void loop() {
     myApp.loop();
+    esp_task_wdt_reset();
 }
 
 
