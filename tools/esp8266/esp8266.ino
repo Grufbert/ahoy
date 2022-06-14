@@ -1,4 +1,3 @@
-
 //#include "Arduino.h"
 
 #if defined(ESP8266)
@@ -17,11 +16,19 @@
 #include <Ticker.h>
 #include "app.h"
 #include "config.h"
+#include "EEPROM.h"
 
 app myApp;
 
 //-----------------------------------------------------------------------------
 void setup() {
+    // TODO NEED TO BE HERE FOR ESP32
+    bool success = EEPROM.begin(1000);
+    if(!success)
+        DPRINTLN(F("eep.h:begin error"));
+    else
+        DPRINTLN(F("eep.h:begin success"));
+
     myApp.setup(WIFI_TRY_CONNECT_TIME);
 
     // TODO: move to HmRadio
