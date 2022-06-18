@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #ifndef __MQTT_H__
 #define __MQTT_H__
 
@@ -20,7 +25,7 @@ class mqtt {
         }
 
         void setup(const char *broker, const char *topic, const char *user, const char *pwd, uint16_t port) {
-            DPRINTLN(F("mqtt.h:setup"));
+            DPRINTLN(DBG_VERBOSE, F("mqtt.h:setup"));
             mAddressSet = true;
             mClient->setServer(broker, port);
 
@@ -31,7 +36,7 @@ class mqtt {
         }
 
         void sendMsg(const char *topic, const char *msg) {
-            //DPRINTLN(F("mqtt.h:sendMsg"));
+            //DPRINTLN(DBG_VERBOSE, F("mqtt.h:sendMsg"));
             if(mAddressSet) {
                 char top[64];
                 snprintf(top, 64, "%s/%s", mTopic, topic);
@@ -44,24 +49,24 @@ class mqtt {
         }
 
         bool isConnected(bool doRecon = false) {
-            //DPRINTLN(F("mqtt.h:isConnected"));
+            //DPRINTLN(DBG_VERBOSE, F("mqtt.h:isConnected"));
             if(doRecon)
                 reconnect();
             return mClient->connected();
         }
 
         char *getUser(void) {
-            //DPRINTLN(F("mqtt.h:getUser"));
+            //DPRINTLN(DBG_VERBOSE, F("mqtt.h:getUser"));
             return mUser;
         }
 
         char *getPwd(void) {
-            //DPRINTLN(F("mqtt.h:getPwd"));
+            //DPRINTLN(DBG_VERBOSE, F("mqtt.h:getPwd"));
             return mPwd;
         }
 
         char *getTopic(void) {
-            //DPRINTLN(F("mqtt.h:getTopic"));
+            //DPRINTLN(DBG_VERBOSE, F("mqtt.h:getTopic"));
             return mTopic;
         }
 
@@ -78,13 +83,12 @@ class mqtt {
 
     private:
         void reconnect(void) {
-            //DPRINTLN(F("mqtt.h:reconnect"));
+            //DPRINTLN(DBG_VERBOSE, F("mqtt.h:reconnect"));
             if(!mClient->connected()) {
-                String mqttId = "ESP-" + String(random(0xffff), HEX);
                 if((strlen(mUser) > 0) && (strlen(mPwd) > 0))
-                    mClient->connect(mqttId.c_str(), mUser, mPwd);
+                    mClient->connect(DEF_DEVICE_NAME, mUser, mPwd);
                 else
-                    mClient->connect(mqttId.c_str());
+                    mClient->connect(DEF_DEVICE_NAME);
             }
         }
 

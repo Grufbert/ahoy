@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #include "main.h"
 //#include "version.h"
 
@@ -32,7 +37,7 @@ Main::Main(void) {
 
     mEep = new eep();
     Serial.begin(115200);
-    DPRINTLN(F("Main::Main"));
+    DPRINTLN(DBG_VERBOSE, F("Main::Main"));
 
     mUptimeSecs     = 0;
     mUptimeTicker   = 0xffffffff;
@@ -46,7 +51,7 @@ Main::Main(void) {
 
 //-----------------------------------------------------------------------------
 void Main::setup(uint32_t timeout) {
-    DPRINTLN(F("Main::setup"));
+    DPRINTLN(DBG_VERBOSE, F("Main::setup"));
     bool startAp = mApActive;
     mLimit = timeout;
 
@@ -75,7 +80,7 @@ void Main::setup(uint32_t timeout) {
 
 //-----------------------------------------------------------------------------
 void Main::loop(void) {
-    //DPRINT(F("M"));
+    //DPRINTLN(DBG_VERBOSE, F("M"));
     if(mApActive) {
         mDns->processNextRequest();
 #ifndef AP_ONLY
@@ -84,7 +89,7 @@ void Main::loop(void) {
             mApActive = setupStation(mLimit);
             if(mApActive) {
                 if(strlen(WIFI_AP_PWD) < 8)
-                    DPRINTLN(F("ERROR: password must be at least 8 characters long"));
+                    DPRINTLN(DBG_ERROR, F("password must be at least 8 characters long"));
                 setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
             }
         }
@@ -92,11 +97,11 @@ void Main::loop(void) {
             if(millis() - mApLastTick > 10000) {
                 uint8_t cnt = WiFi.softAPgetStationNum();
                 if(cnt > 0) {
-                    DPRINTLN(String(cnt) + String(F(" clients connected, resetting AP timeout")));
+                    DPRINTLN(DBG_INFO, String(cnt) + String(F(" clients connected, resetting AP timeout")));
                     mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
                 }
                 mApLastTick = millis();
-                DPRINTLN(String(F("AP will be closed in ")) + String((mNextTryTs - mApLastTick) / 1000) + String(F(" seconds")));
+                DPRINTLN(DBG_INFO, String(F("AP will be closed in ")) + String((mNextTryTs - mApLastTick) / 1000) + String(F(" seconds")));
             }
         }
 #endif
@@ -110,7 +115,7 @@ void Main::loop(void) {
         else {
             if(!mApActive) {
                 mTimestamp  = getNtpTime();
-                DPRINTLN("[NTP]: " + getDateTimeStr(mTimestamp));
+                DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
             }
         }
 
@@ -124,11 +129,11 @@ void Main::loop(void) {
 
 //-----------------------------------------------------------------------------
 bool Main::getConfig(void) {
-    DPRINTLN(F("Main::getConfig"));
+    DPRINTLN(DBG_VERBOSE, F("Main::getConfig"));
     bool mApActive = false;
 
     mWifiSettingsValid = checkEEpCrc(ADDR_START, ADDR_WIFI_CRC, ADDR_WIFI_CRC);
-    mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, (ADDR_NEXT-ADDR_START_SETTINGS), ADDR_SETTINGS_CRC);
+    mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT)-(ADDR_START_SETTINGS)), ADDR_SETTINGS_CRC);
 
     if(mWifiSettingsValid) {
         mEep->read(ADDR_SSID,    mStationSsid, SSID_LEN);
@@ -147,15 +152,15 @@ bool Main::getConfig(void) {
 
 //-----------------------------------------------------------------------------
 void Main::setupAp(const char *ssid, const char *pwd) {
-    DPRINTLN(F("Main::setupAp"));
+    DPRINTLN(DBG_VERBOSE, F("Main::setupAp"));
     IPAddress apIp(192, 168, 1, 1);
 
-    DPRINTLN(String(F("\n---------\nAP MODE\nSSDI: "))
+    DPRINTLN(DBG_INFO, String(F("\n---------\nAP MODE\nSSID: "))
         + String(ssid) + String(F("\nPWD: "))
         + String(pwd) + String(F("\nActive for: "))
         + String(WIFI_AP_ACTIVE_TIME) + String(F(" seconds"))
         + String(F("\n---------\n")));
-    DPRINTLN("DBG: " + String(mNextTryTs));
+    DPRINTLN(DBG_DEBUG, String(mNextTryTs));
 
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0));
@@ -174,7 +179,7 @@ void Main::setupAp(const char *ssid, const char *pwd) {
 
 //-----------------------------------------------------------------------------
 bool Main::setupStation(uint32_t timeout) {
-    DPRINTLN(F("Main::setupStation"));
+    DPRINTLN(DBG_VERBOSE, F("Main::setupStation"));
     int32_t cnt;
     bool startAp = false;
 
@@ -191,7 +196,7 @@ bool Main::setupStation(uint32_t timeout) {
         WiFi.hostname(mDeviceName);
 
     delay(2000);
-    DPRINTLN(String(F("connect to network '")) + String(mStationSsid) + String(F("' ...")));
+    DPRINTLN(DBG_INFO, String(F("connect to network '")) + String(mStationSsid) + String(F("' ...")));
     while (WiFi.status() != WL_CONNECTED) {
         delay(100);
         if(cnt % 100 == 0)
@@ -224,7 +229,7 @@ bool Main::setupStation(uint32_t timeout) {
 
 //-----------------------------------------------------------------------------
 void Main::showSetup(void) {
-    DPRINTLN(F("Main::showSetup"));
+    DPRINTLN(DBG_VERBOSE, F("Main::showSetup"));
     String html = FPSTR(setup_html);
     html.replace(F("{SSID}"), mStationSsid);
     // PWD will be left at the default value (for protection)
@@ -242,21 +247,21 @@ void Main::showSetup(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showCss(void) {
-    DPRINTLN(F("Main::showCss"));
+    DPRINTLN(DBG_VERBOSE, F("Main::showCss"));
     mWeb->send(200, "text/css", FPSTR(style_css));
 }
 
 
 //-----------------------------------------------------------------------------
 void Main::showSave(void) {
-    DPRINTLN(F("Main::showSave"));
+    DPRINTLN(DBG_VERBOSE, F("Main::showSave"));
     saveValues(true);
 }
 
 
 //-----------------------------------------------------------------------------
 void Main::saveValues(bool webSend = true) {
-    DPRINTLN(F("Main::saveValues"));
+    DPRINTLN(DBG_VERBOSE, F("Main::saveValues"));
     if(mWeb->args() > 0) {
         if(mWeb->arg("ssid") != "") {
             memset(mStationSsid, 0, SSID_LEN);
@@ -290,7 +295,7 @@ void Main::saveValues(bool webSend = true) {
 
 //-----------------------------------------------------------------------------
 void Main::updateCrc(void) {
-    DPRINTLN(F("Main::updateCrc"));
+    DPRINTLN(DBG_VERBOSE, F("Main::updateCrc"));
     uint16_t crc;
     crc = buildEEpCrc(ADDR_START, ADDR_WIFI_CRC);
     Serial.println("new CRC: " + String(crc, HEX));
@@ -301,7 +306,7 @@ void Main::updateCrc(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showUptime(void) {
-    //DPRINTLN(F("Main::showUptime"));
+    //DPRINTLN(DBG_VERBOSE, F("Main::showUptime"));
     char time[20] = {0};
 
     int upTimeSc = uint32_t((mUptimeSecs) % 60);
@@ -317,14 +322,14 @@ void Main::showUptime(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showTime(void) {
-    //DPRINTLN(F("Main::showTime"));
+    //DPRINTLN(DBG_VERBOSE, F("Main::showTime"));
     mWeb->send(200, "text/plain", getDateTimeStr(mTimestamp));
 }
 
 
 //-----------------------------------------------------------------------------
 void Main::showNotFound(void) {
-    DPRINTLN(String(F("Main::showNotFound - ") ) + mWeb->uri());
+    DPRINTLN(DBG_VERBOSE, String(F("Main::showNotFound - ")) + mWeb->uri());
     String msg = F("File Not Found\n\nURI: ");
     msg += mWeb->uri();
     msg += F("\nMethod: ");
@@ -343,7 +348,7 @@ void Main::showNotFound(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showReboot(void) {
-    DPRINTLN(F("Main::showReboot"));
+    DPRINTLN(DBG_VERBOSE, F("Main::showReboot"));
     mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>"));
     delay(1000);
     ESP.restart();
@@ -353,7 +358,7 @@ void Main::showReboot(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showFactoryRst(void) {
-    DPRINTLN(F("Main::showFactoryRst"));
+    DPRINTLN(DBG_VERBOSE, F("Main::showFactoryRst"));
     String content = "";
     int refresh = 3;
     if(mWeb->args() > 0) {
@@ -382,7 +387,7 @@ void Main::showFactoryRst(void) {
 
 //-----------------------------------------------------------------------------
 time_t Main::getNtpTime(void) {
-    //DPRINTLN(F("Main::getNtpTime"));
+    //DPRINTLN(DBG_VERBOSE, F("Main::getNtpTime"));
     time_t date = 0;
     IPAddress timeServer;
     uint8_t buf[NTP_PACKET_SIZE];
@@ -420,7 +425,7 @@ time_t Main::getNtpTime(void) {
 
 //-----------------------------------------------------------------------------
 void Main::sendNTPpacket(IPAddress& address) {
-    //DPRINTLN(F("Main::sendNTPpacket"));
+    //DPRINTLN(DBG_VERBOSE, F("Main::sendNTPpacket"));
     uint8_t buf[NTP_PACKET_SIZE] = {0};
 
     buf[0] = B11100011; // LI, Version, Mode
@@ -441,7 +446,7 @@ void Main::sendNTPpacket(IPAddress& address) {
 
 //-----------------------------------------------------------------------------
 String Main::getDateTimeStr(time_t t) {
-    //DPRINTLN(F("Main::getDateTimeStr"));
+    //DPRINTLN(DBG_VERBOSE, F("Main::getDateTimeStr"));
     char str[20] = {0};
     if(0 == t)
         sprintf(str, "n/a");
@@ -455,7 +460,7 @@ String Main::getDateTimeStr(time_t t) {
 // calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
 // from: https://forum.arduino.cc/index.php?topic=172044.msg1278536#msg1278536
 time_t Main::offsetDayLightSaving (uint32_t local_t) {
-    //DPRINTLN(F("Main::offsetDayLightSaving"));
+    //DPRINTLN(DBG_VERBOSE, F("Main::offsetDayLightSaving"));
     int m = month (local_t);
     if(m < 3 || m > 10) return 0; // no DSL in Jan, Feb, Nov, Dez
     if(m > 3 && m < 10) return 1; // DSL in Apr, May, Jun, Jul, Aug, Sep

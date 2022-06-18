@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #ifndef __APP_H__
 #define __APP_H__
 
@@ -10,6 +15,7 @@
 #include "CircularBuffer.h"
 #include "hmSystem.h"
 #include "mqtt.h"
+
 
 typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
 typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, RF24_IRQ_PIN, BufferType> RadioType;
@@ -91,6 +97,7 @@ class app : public Main {
         invPayload_t mPayload[MAX_NUM_INVERTERS];
         uint32_t mRxFailed;
         uint32_t mRxSuccess;
+        uint32_t mFrameCnt;
         uint8_t mLastPacketId;
         uint8_t mMaxRetransPerPyld;
 

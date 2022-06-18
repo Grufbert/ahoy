@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
@@ -52,5 +57,12 @@
 
 // changes the style of "/setup" page, visualized = nicer
 #define LIVEDATA_VISUALIZED
+
+// comment out to disable any of the debug options here
+#define DEBUG_APP
+#define DEBUG_HMINVERTER
+#define DEBUG_HMRADIO
+#define DEBUG_HMSYSTEM
+#define DEBUG_HMMAIN
 
 #endif /*__CONFIG_H__*/

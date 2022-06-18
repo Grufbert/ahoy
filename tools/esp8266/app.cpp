@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #include "app.h"
 
 #include "html/h/index_html.h"
@@ -7,7 +12,7 @@
 
 //-----------------------------------------------------------------------------
 app::app() : Main() {
-    DPRINTLN(F("app::app():Main"));
+    DPRINTLN(DBG_VERBOSE, F("app::app():Main"));
     mSendTicker     = 0xffff;
     mSendInterval   = 0;
     mMqttTicker     = 0xffff;
@@ -29,6 +34,7 @@ app::app() : Main() {
     memset(mPayload, 0, (MAX_NUM_INVERTERS * sizeof(invPayload_t)));
     mRxFailed     = 0;
     mRxSuccess    = 0;
+    mFrameCnt     = 0;
     mLastPacketId = 0x00;
 
     mSys = new HmSystemType();
@@ -43,7 +49,7 @@ app::~app(void) {
 
 //-----------------------------------------------------------------------------
 void app::setup(uint32_t timeout) {
-    DPRINTLN(F("app::setup"));
+    DPRINTLN(DBG_VERBOSE, F("app::setup"));
     Main::setup(timeout);
 
     mWeb->on("/",          std::bind(&app::showIndex,      this));
@@ -72,7 +78,7 @@ void app::setup(uint32_t timeout) {
             if(0ULL != invSerial) {
                 iv = mSys->addInverter(name, invSerial, modPwr);
                 if(NULL != iv) {
-                    DPRINTLN(String(F("add inverter: ")) + String(name) + ", SN: " + String((int)invSerial, HEX));
+                    DPRINTLN(DBG_INFO, String(F("add inverter: ")) + String(name) + ", SN: " + String(invSerial, HEX));
 
                     for(uint8_t j = 0; j < 4; j++) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, name, MAX_NAME_LENGTH);
@@ -161,11 +167,13 @@ void app::setup(uint32_t timeout) {
         }
     }
     else {
-        DPRINTLN(F("Settings not valid, erasing ..."));
+        DPRINTLN(DBG_DEBUG, F("CRC pos: ") + String(ADDR_SETTINGS_CRC));
+        DPRINTLN(DBG_DEBUG, F("NXT pos: ") + String(ADDR_NEXT));
+        DPRINTLN(DBG_INFO, F("Settings not valid, erasing ..."));
         eraseSettings();
         saveValues(false);
         delay(100);
-        DPRINTLN(F("... restarting ..."));
+        DPRINTLN(DBG_INFO, F("... restarting ..."));
         delay(100);
         ESP.restart();
     }
@@ -173,23 +181,21 @@ void app::setup(uint32_t timeout) {
     mSys->setup();
 
     if(!mWifiSettingsValid)
-        DPRINTLN(F("Warn: your settings are not valid! check [IP]/setup"));
+        DPRINTLN(DBG_WARN, F("your settings are not valid! check [IP]/setup"));
     else {
-        DPRINTLN(F("\n\n----------------------------------------"));
-        DPRINTLN(F("Welcome to AHOY!"));
-        DPRINT(F("\npoint your browser to http://"));
-        DPRINTLN(WiFi.localIP());
-        DPRINTLN(F("to configure your device"));
-        DPRINTLN(F("----------------------------------------\n"));
+        DPRINTLN(DBG_INFO, F("\n\n----------------------------------------"));
+        DPRINTLN(DBG_INFO, F("Welcome to AHOY!"));
+        DPRINT(DBG_INFO, F("\npoint your browser to http://"));
+        DBGPRINTLN(WiFi.localIP());
+        DPRINTLN(DBG_INFO, F("to configure your device"));
+        DPRINTLN(DBG_INFO, F("----------------------------------------\n"));
     }
 }
 
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
-    //DPRINT(F("a"));
-    //DPRINTLN(F("a"));
-    //app_loops++;
+    DPRINTLN(DBG_VERBOSE, F("app::loop"));
     Main::loop();
 
     mSys->Radio.loop();
@@ -197,9 +203,10 @@ void app::loop(void) {
     yield();
 
     if(checkTicker(&mRxTicker, 5)) {
-        //DPRINTLN(String(F("app_loops =") ) + String(app_loops));
-        //app_loops=0;
-        //DPRINT(F("a"));
+        DPRINTLN(DBG_DEBUG, F("app_loops =") + String(app_loops));
+        app_loops=0;
+        DPRINT(DBG_DEBUG, F("a"));
+
         bool rxRdy = mSys->Radio.switchRxCh();
 
         if(!mSys->BufCtrl.empty()) {
@@ -209,9 +216,10 @@ void app::loop(void) {
             if(mSys->Radio.checkPaketCrc(p->packet, &len, p->rxCh)) {
                 // process buffer only on first occurrence
                 if(mSerialDebug) {
-                    DPRINT("Received " + String(len) + " bytes channel " + String(p->rxCh) + ": ");
+                    DPRINT(DBG_DEBUG, "Received " + String(len) + " bytes channel " + String(p->rxCh) + ": ");
                     mSys->Radio.dumpBuf(NULL, p->packet, len);
                 }
+                mFrameCnt++;
 
                 if(0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
@@ -264,8 +272,6 @@ void app::loop(void) {
                     }
                 }
             }
-            snprintf(val, 10, "%d", ESP.getFreeHeap());
-            mMqtt.sendMsg("free_heap", val);
             snprintf(val, 10, "%d", millis()/1000);
             mMqtt.sendMsg("uptime", val);
         }
@@ -282,7 +288,7 @@ void app::loop(void) {
                                 if(0.0f != iv->getValue(i)) {
                                     snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
                                     snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
-                                    DPRINTLN(String(topic) + ": " + String(val));
+                                    DPRINTLN(DBG_INFO, String(topic) + ": " + String(val));
                                 }
                                 yield();
                             }
@@ -297,11 +303,11 @@ void app::loop(void) {
 
             if(0 != mTimestamp) {
                 if(mSerialDebug)
-                    DPRINTLN(String(F("Free heap: 0x") ) + String(ESP.getFreeHeap(), HEX));
+                    DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
 
                 if(!mSys->BufCtrl.empty()) {
                     if(mSerialDebug)
-                        DPRINTLN(String(F("recbuf not empty! #") ) + String(mSys->BufCtrl.getFill()));
+                        DPRINTLN(DBG_DEBUG, String(F("recbuf not empty! #")) + String(mSys->BufCtrl.getFill()));
                 }
 
                 int8_t maxLoop = MAX_NUM_INVERTERS;
@@ -320,8 +326,8 @@ void app::loop(void) {
                     if(!mPayload[iv->id].complete) {
                         mRxFailed++;
                         if(mSerialDebug) {
-                            DPRINT(String(F("Inverter #")) + String(iv->id) + " ");
-                            DPRINTLN(String(F("no Payload received! (retransmits: ")) + String(mPayload[iv->id].retransmits) + ")");
+                            DPRINT(DBG_INFO, String(F("Inverter #")) + String(iv->id) + " ");
+                            DPRINTLN(DBG_INFO, String(F("no Payload received! (retransmits: ")) + String(mPayload[iv->id].retransmits) + ")");
                         }
                     }
 
@@ -335,13 +341,13 @@ void app::loop(void) {
 
                     yield();
                     if(mSerialDebug)
-                        DPRINTLN(String(F("Requesting Inverter SN ")) + String((int)iv->serial.u64, HEX));
+                        DPRINTLN(DBG_INFO, String(F("Requesting Inverter SN ")) + String(iv->serial.u64, HEX));
                     mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                     mRxTicker = 0;
                 }
             }
             else if(mSerialDebug)
-                DPRINTLN(F("time not set, can't request inverter!"));
+                DPRINTLN(DBG_WARN, F("time not set, can't request inverter!"));
             yield();
         }
     }
@@ -350,14 +356,14 @@ void app::loop(void) {
 
 //-----------------------------------------------------------------------------
 void app::handleIntr(void) {
-    //DPRINTLN(F("app::handleIntr"));
+    DPRINTLN(DBG_VERBOSE, F("app::handleIntr"));
     mSys->Radio.handleIntr();
 }
 
 
 //-----------------------------------------------------------------------------
 bool app::buildPayload(uint8_t id) {
-    //DPRINTLN(F("app::buildPayload"));
+    DPRINTLN(DBG_VERBOSE, F("app::buildPayload"));
     uint16_t crc = 0xffff, crcRcv;
     if(mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
         mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
@@ -382,22 +388,21 @@ bool app::buildPayload(uint8_t id) {
 
 //-----------------------------------------------------------------------------
 void app::processPayload(bool retransmit) {
-    //DPRINTLN(F("app::processPayload"));
-    //DPRINT(F("p"));
+    DPRINTLN(DBG_VERBOSE, F("app::processPayload"));
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if(NULL != iv) {
             if(!mPayload[iv->id].complete) {
                 if(!buildPayload(iv->id)) {
                     if(mPayload[iv->id].requested) {
-                        if(mPayload[iv->id].retransmits < mMaxRetransPerPyld) {
-                            mPayload[iv->id].retransmits++;
-                            if(retransmit) {
+                        if(retransmit) {
+                            if(mPayload[iv->id].retransmits < mMaxRetransPerPyld) {
+                                mPayload[iv->id].retransmits++;
                                 if(mPayload[iv->id].maxPackId != 0) {
                                     for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i ++) {
                                         if(mPayload[iv->id].len[i] == 0) {
                                             if(mSerialDebug)
-                                                DPRINTLN(String(F("Error while retrieving data: Frame ")) + String(i+1) + String(F(" missing: Request Retransmit")));
+                                                DPRINTLN(DBG_ERROR, String(F("while retrieving data: Frame ")) + String(i+1) + String(F(" missing: Request Retransmit")));
                                             mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x15, (0x81+i), true);
                                             break; // only retransmit one frame per loop
                                         }
@@ -406,7 +411,7 @@ void app::processPayload(bool retransmit) {
                                 }
                                 else {
                                     if(mSerialDebug)
-                                        DPRINTLN(F("Error while retrieving data: last frame missing: Request Retransmit"));
+                                        DPRINTLN(DBG_ERROR, F("while retrieving data: last frame missing: Request Retransmit"));
                                     if(0x00 != mLastPacketId)
                                         mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x15, mLastPacketId, true);
                                     else
@@ -429,26 +434,27 @@ void app::processPayload(bool retransmit) {
                     }
                     offs-=2;
                     if(mSerialDebug) {
-                        DPRINT(String(F("Payload (")) + String(offs) + "): ");
+                        DPRINT(DBG_INFO, String(F("Payload (")) + String(offs) + "): ");
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
                     mRxSuccess++;
 
                     for(uint8_t i = 0; i < iv->listLen; i++) {
                         iv->addValue(i, payload);
+                        yield();
                     }
                     iv->doCalculations();
                 }
             }
+            yield();
         }
-        yield();
     }
 }
 
 
 //-----------------------------------------------------------------------------
 void app::showIndex(void) {
-    DPRINTLN(F("app::showIndex"));
+    DPRINTLN(DBG_VERBOSE, F("app::showIndex"));
     String html = FPSTR(index_html);
     html.replace(F("{DEVICE}"), mDeviceName);
     html.replace(F("{VERSION}"), mVersion);
@@ -460,7 +466,7 @@ void app::showIndex(void) {
 
 //-----------------------------------------------------------------------------
 void app::showSetup(void) {
-    DPRINTLN(F("app::showSetup"));
+    DPRINTLN(DBG_VERBOSE, F("app::showSetup"));
     // overrides same method in main.cpp
 
     uint16_t interval;
@@ -584,14 +590,14 @@ void app::showSetup(void) {
 
 //-----------------------------------------------------------------------------
 void app::showSave(void) {
-    DPRINTLN(F("app::showSave"));
+    DPRINTLN(DBG_VERBOSE, F("app::showSave"));
     saveValues(true);
 }
 
 
 //-----------------------------------------------------------------------------
 void app::showErase() {
-    DPRINTLN(F("app::showErase"));
+    DPRINTLN(DBG_VERBOSE, F("app::showErase"));
     eraseSettings();
     showReboot();
 }
@@ -599,11 +605,11 @@ void app::showErase() {
 
 //-----------------------------------------------------------------------------
 void app::showStatistics(void) {
-    //DPRINTLN(F("app::showStatistics"));
+    DPRINTLN(DBG_VERBOSE, F("app::showStatistics"));
     String content = String(F("Receive success: ")) + String(mRxSuccess) + "\n";
     content += String(F("Receive fail: ")) + String(mRxFailed) + "\n";
+    content += String(F("Frames received: ")) + String(mFrameCnt) + "\n";
     content += String(F("Send Cnt: ")) + String(mSys->Radio.mSendCnt) + String("\n\n");
-    content += String(F("Free Heap: 0x")) + String(ESP.getFreeHeap(), HEX) + "\n\n";
 
     Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
@@ -647,7 +653,7 @@ void app::showStatistics(void) {
 
 //-----------------------------------------------------------------------------
 void app::showHoymiles(void) {
-    DPRINTLN(F("app::showHoymiles"));
+    DPRINTLN(DBG_VERBOSE, F("app::showHoymiles"));
     String html = FPSTR(hoymiles_html);
     html.replace(F("{DEVICE}"), mDeviceName);
     html.replace(F("{VERSION}"), mVersion);
@@ -659,7 +665,7 @@ void app::showHoymiles(void) {
 
 //-----------------------------------------------------------------------------
 void app::showLiveData(void) {
-    //DPRINTLN(F("app::showLiveData"));
+    DPRINTLN(DBG_VERBOSE, F("app::showLiveData"));
     String modHtml;
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
@@ -736,7 +742,7 @@ void app::showLiveData(void) {
 
 //-----------------------------------------------------------------------------
 void app::saveValues(bool webSend = true) {
-    DPRINTLN(F("app::saveValues"));
+    DPRINTLN(DBG_VERBOSE, F("app::saveValues"));
     Main::saveValues(false); // general configuration
 
     if(mWeb->args() > 0) {
@@ -825,8 +831,8 @@ void app::saveValues(bool webSend = true) {
         mEep->write(ADDR_SER_ENABLE, (uint8_t)((tmp) ? 0x01 : 0x00));
         mSerialDebug = (mWeb->arg("serDbg") == "on");
         mEep->write(ADDR_SER_DEBUG, (uint8_t)((mSerialDebug) ? 0x01 : 0x00));
-        DPRINT("Info: Serial debug is ");
-        if(mSerialDebug) DPRINTLN("on"); else DPRINTLN("off");
+        DPRINT(DBG_INFO, "Serial debug is ");
+        if(mSerialDebug) DPRINTLN(DBG_INFO, "on"); else DPRINTLN(DBG_INFO, "off");
         mSys->Radio.mSerialDebug = mSerialDebug;
 
         updateCrc();
@@ -850,11 +856,11 @@ void app::saveValues(bool webSend = true) {
 
 //-----------------------------------------------------------------------------
 void app::updateCrc(void) {
-    DPRINTLN(F("app::updateCrc"));
+    DPRINTLN(DBG_VERBOSE, F("app::updateCrc"));
     Main::updateCrc();
 
     uint16_t crc;
-    crc = buildEEpCrc(ADDR_START_SETTINGS, (ADDR_NEXT - ADDR_START_SETTINGS));
-    //DPRINTLN("new CRC: " + String(crc, HEX));
+    crc = buildEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT) - (ADDR_START_SETTINGS)));
+    DPRINTLN(DBG_DEBUG, F("new CRC: ") + String(crc, HEX));
     mEep->write(ADDR_SETTINGS_CRC, crc);
 }

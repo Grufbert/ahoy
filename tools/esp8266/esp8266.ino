@@ -1,6 +1,10 @@
-//#include "Arduino.h"
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
 
 #if defined(ESP8266)
+  #include "Arduino.h"
   #include <ESP8266WiFi.h>
   #include <ESP8266WebServer.h>
   #include <ESP8266HTTPUpdateServer.h>
@@ -9,8 +13,9 @@
   #include <WebServer.h>
   #include <HTTPUpdateServer.h>
 #else
-  #error "This ain't a ESP8266 or ESP32, dumbo!"
+  #error "This ain't a ESP8266 or ESP32"
 #endif
+
 
 #include <DNSServer.h>
 #include <Ticker.h>
