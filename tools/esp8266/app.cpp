@@ -492,9 +492,9 @@ void app::showSetup(void) {
         inv += String(F("<input type=\"text\" class=\"text\" name=\"inv")) + String(i) + String(F("Addr\" value=\""));
         if(0ULL != invSerial)
         {
-            unsigned long long1 = (unsigned long)((invSerial & 0xFFFF0000) >> 16 );
-            unsigned long long2 = (unsigned long)((invSerial & 0x0000FFFF));
-            inv += String(long1, HEX) + String(long2, HEX);
+            char buffer[20];
+            sprintf(buffer, "%" PRIx64, (uint64_t)invSerial);
+            inv += buffer;
         }
         inv += F("\"/ maxlength=\"12\" onkeyup=\"checkSerial()\">");
 
@@ -750,9 +750,14 @@ void app::saveValues(bool webSend = true) {
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
             // address
             mWeb->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
+            DPRINTLN("app::saveValues read " + String(buf));
             if(strlen(buf) == 0)
                 snprintf(buf, 20, "\0");
+            DPRINTLN("app:: add null" + String(buf));
             addr.u64 = Serial2u64(buf);
+            uint32_t low = addr.u64 % 0xFFFFFFFF;
+            uint32_t high = (addr.u64>> 32) % 0xFFFFFFFF;
+            DPRINTLN("app:: save " + String(low) + String(high));
             mEep->write(ADDR_INV_ADDR + (i * 8), addr.u64);
 
             // name
