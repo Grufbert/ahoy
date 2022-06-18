@@ -276,7 +276,7 @@ void loop(void)
     // Payload length
     uint8_t payloadLen = ((p->packet[0] & 0x01) << 5) | (p->packet[1] >> 3);
     // Add one byte and one bit for 9-bit packet control field
-    crc = crc16((uint8_t *)&p->packet[0], sizeoString(f(p->packet), crc, 7, BYTES_TO_BITS(payloadLen + 1) ) + 1);
+    crc = crc16((uint8_t *)&p->packet[0], sizeof(p->packet), crc, 7, BYTES_TO_BITS(payloadLen + 1) + 1);
 
     if (checkCRC)
     {

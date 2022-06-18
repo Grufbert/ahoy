@@ -434,7 +434,7 @@ boolean doCheckCrc (NRF24_packet_t *p, uint8_t payloadLen) {
   crc = crc16((uint8_t *)&SerialHdr.address, sizeof(SerialHdr.address), crc, 0, BYTES_TO_BITS(sizeof(SerialHdr.address)));
   // Payload length
   // Add one byte and one bit for 9-bit packet control field
-  crc = crc16((uint8_t *)&p->packet[0], sizeoString(f(p->packet), crc, 7, BYTES_TO_BITS(payloadLen + 1) ) + 1);
+  crc = crc16((uint8_t *)&p->packet[0], sizeof(p->packet), crc, 7, BYTES_TO_BITS(payloadLen + 1) + 1);
   
   if (CHECKCRC) {
     // If CRC is invalid only show lost packets
