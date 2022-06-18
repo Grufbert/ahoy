@@ -16,39 +16,35 @@
   #error "This ain't a ESP8266 or ESP32"
 #endif
 
-
 #include <DNSServer.h>
 #include <Ticker.h>
 #include "app.h"
 #include "config.h"
 #include "EEPROM.h"
 
+#if ESP32
 #include <esp_task_wdt.h>
+#endif
 
 app myApp;
 
 //-----------------------------------------------------------------------------
 void setup() {
-    // TODO NEED TO BE HERE FOR ESP32
-    bool success = EEPROM.begin(1000);
-    if(!success)
-        DPRINTLN(F("eep.h:begin error"));
-    else
-        DPRINTLN(F("eep.h:begin success"));
+    #if ESP32
+    EEPROM.begin(1000);
+    esp_task_wdt_init(10, false); //disable watchtdog
+    #endif
 
     myApp.setup(WIFI_TRY_CONNECT_TIME);
 
     // TODO: move to HmRadio
     attachInterrupt(digitalPinToInterrupt(myApp.getIrqPin()), handleIntr, FALLING);
-
-    esp_task_wdt_init(10, false);
 }
 
 
 //-----------------------------------------------------------------------------
 void loop() {
     myApp.loop();
-    esp_task_wdt_reset();
 }
 
 

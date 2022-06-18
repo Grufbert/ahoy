@@ -6,9 +6,16 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-//#include "Arduino.h"
-#include <WebServer.h>
-#include <HTTPUpdateServer.h>
+#if defined(ESP8266)
+  #include "Arduino.h"
+  #include <ESP8266WebServer.h>
+  #include <ESP8266HTTPUpdateServer.h>
+#elif defined(ESP32)
+  #include <WebServer.h>
+  #include <HTTPUpdateServer.h>
+#else
+  #error "This ain't a ESP8266 or ESP32"
+#endif
 
 #include <DNSServer.h>
 
@@ -61,7 +68,7 @@ class Main {
 
         bool checkEEpCrc(uint32_t start, uint32_t length, uint32_t crcPos) {
             DPRINTLN(DBG_VERBOSE, F("main.h:checkEEpCrc"));
-            DPRINTLN(DBG_DEBUG, F("start: ") + String(start) + F(", length: ") + String(length));
+            DPRINTLN(DBG_DEBUG, String(F("start: ")) + String(start) + String(F(", length: ")) + String(length));
             uint16_t crcRd, crcCheck;
             crcCheck = buildEEpCrc(start, length);
             mEep->read(crcPos, &crcRd);
@@ -121,7 +128,7 @@ class Main {
         #elif defined(ESP32)
           WebServer *mWeb;
         #else
-          #error "This ain't a ESP8266 or ESP32, dumbo!"
+          #error "This ain't a ESP8266 or ESP32!"
         #endif      
           
         char mVersion[9];
@@ -161,7 +168,7 @@ class Main {
         #elif defined(ESP32)
           HTTPUpdateServer *mUpdater;
         #else
-          #error "This ain't a ESP8266 or ESP32, dumbo!"
+          #error "This ain't a ESP8266 or ESP32"
         #endif
 
         WiFiUDP *mUdp; // for time server

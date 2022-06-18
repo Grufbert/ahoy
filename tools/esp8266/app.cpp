@@ -78,8 +78,10 @@ void app::setup(uint32_t timeout) {
             if(0ULL != invSerial) {
                 iv = mSys->addInverter(name, invSerial, modPwr);
                 if(NULL != iv) {
+                    #if ESP8266
                     DPRINTLN(DBG_INFO, String(F("add inverter: ")) + String(name) + ", SN: " + String(invSerial, HEX));
-
+                    #endif
+                    
                     for(uint8_t j = 0; j < 4; j++) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, name, MAX_NAME_LENGTH);
                         snprintf(iv->chName[j], MAX_NAME_LENGTH, "%s", name);
@@ -167,8 +169,8 @@ void app::setup(uint32_t timeout) {
         }
     }
     else {
-        DPRINTLN(DBG_DEBUG, F("CRC pos: ") + String(ADDR_SETTINGS_CRC));
-        DPRINTLN(DBG_DEBUG, F("NXT pos: ") + String(ADDR_NEXT));
+        DPRINTLN(DBG_DEBUG, String(F("CRC pos: ")) + String(ADDR_SETTINGS_CRC));
+        DPRINTLN(DBG_DEBUG, String(F("NXT pos: ")) + String(ADDR_NEXT));
         DPRINTLN(DBG_INFO, F("Settings not valid, erasing ..."));
         eraseSettings();
         saveValues(false);
@@ -203,7 +205,7 @@ void app::loop(void) {
     yield();
 
     if(checkTicker(&mRxTicker, 5)) {
-        DPRINTLN(DBG_DEBUG, F("app_loops =") + String(app_loops));
+        DPRINTLN(DBG_DEBUG, String(F("app_loops =")) + String(app_loops));
         app_loops=0;
         DPRINT(DBG_DEBUG, F("a"));
 
@@ -303,7 +305,7 @@ void app::loop(void) {
 
             if(0 != mTimestamp) {
                 if(mSerialDebug)
-                    DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
+                    DPRINTLN(DBG_DEBUG, String(F("Free heap: 0x")) + String(ESP.getFreeHeap(), HEX));
 
                 if(!mSys->BufCtrl.empty()) {
                     if(mSerialDebug)
@@ -340,8 +342,10 @@ void app::loop(void) {
                     mPayload[iv->id].ts = mTimestamp;
 
                     yield();
+                    #if ESP8266
                     if(mSerialDebug)
                         DPRINTLN(DBG_INFO, String(F("Requesting Inverter SN ")) + String(iv->serial.u64, HEX));
+                    #endif
                     mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                     mRxTicker = 0;
                 }
@@ -756,14 +760,9 @@ void app::saveValues(bool webSend = true) {
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
             // address
             mWeb->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
-            DPRINTLN("app::saveValues read " + String(buf));
             if(strlen(buf) == 0)
                 snprintf(buf, 20, "\0");
-            DPRINTLN("app:: add null" + String(buf));
             addr.u64 = Serial2u64(buf);
-            uint32_t low = addr.u64 % 0xFFFFFFFF;
-            uint32_t high = (addr.u64>> 32) % 0xFFFFFFFF;
-            DPRINTLN("app:: save " + String(low) + String(high));
             mEep->write(ADDR_INV_ADDR + (i * 8), addr.u64);
 
             // name
@@ -861,6 +860,6 @@ void app::updateCrc(void) {
 
     uint16_t crc;
     crc = buildEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT) - (ADDR_START_SETTINGS)));
-    DPRINTLN(DBG_DEBUG, F("new CRC: ") + String(crc, HEX));
+    DPRINTLN(DBG_DEBUG, String(F("new CRC: ")) + String(crc, HEX));
     mEep->write(ADDR_SETTINGS_CRC, crc);
 }
