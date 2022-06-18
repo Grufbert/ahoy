@@ -25,8 +25,8 @@
   #define DISABLE_IRQ noInterrupts()
   #define RESTORE_IRQ interrupts()
 #elif ESP32
-  #define DISABLE_IRQ noInterrupts()
-  #define RESTORE_IRQ interrupts()
+  #define DISABLE_IRQ asm("nop")
+  #define RESTORE_IRQ asm("nop")
 #else
 #define DISABLE_IRQ       \
     uint8_t sreg = SREG;    \
